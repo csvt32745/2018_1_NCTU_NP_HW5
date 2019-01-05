@@ -194,7 +194,12 @@ class Server:
         MaxCount = 1,
         KeyName = 'NP',
         InstanceType = 't2.micro',
-        NetworkInterfaces =[{ 'NetworkInterfaceId': ni.id, 'DeviceIndex': 0}],
+        NetworkInterfaces = [
+            {
+                'NetworkInterfaceId': ni.id,
+                'DeviceIndex': 0
+            }
+        ],
         UserData = '''#!/bin/bash
 /usr/bin/python3 /home/ubuntu/app_server.py {0} 1234 
 '''.format(ni.private_ip_address)
@@ -202,6 +207,15 @@ class Server:
         instance.wait_until_running()
         instance.reload()
         print(instance.id, 'is created!')
+        ni = instance.network_interfaces[0]
+        print(ni.attachment['AttachmentId'])
+        ni.modify_attribute(
+            Attachment = {
+                    'AttachmentId': ni.attachment['AttachmentId'],
+                    'DeleteOnTermination': True
+            }
+        )
+
         server = APPServer.create(
             instance_id = instance.id,
             server_ip = instance.public_ip_address
@@ -212,7 +226,7 @@ class Server:
     def checkServerLoading(self, server):
         print('{0} remains {1} members!'.format(server.instance_id, len(server.members)))
         if not server.members:
-            i = self.ec2.instances.filter(InstanceIds = [server.instance_id])
+            i = self.ec2.Instance(server.instance_id)
             i.terminate()
             server.delete_instance(recursive = True)
 
